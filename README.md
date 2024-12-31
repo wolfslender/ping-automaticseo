@@ -29,9 +29,19 @@ Auto Ping Publisher SEO realiza automáticamente un ping a los servicios de actu
 2. Activa el plugin desde el panel de administración de WordPress.
 3. Configura los servicios de ping en **Ajustes > Auto Ping**.
 
+## Installation
+1. Download or clone this repository.
+2. Upload the folder to your WordPress plugin directory (`wp-content/plugins/`).
+3. Activate the plugin from the WordPress “Plugins” menu.
+
 ## Uso
 
 Después de la instalación y activación, el plugin enviará automáticamente pings a los servicios configurados cada vez que publiques o actualices un post.
+
+## Usage
+- Go to “Settings” → “Auto Ping” to configure your Ping Services.
+- Enter each service URL on a new line and save your changes.
+- The plugin will automatically ping these services every 5 hours for any new or recently updated posts.
 
 ## Soporte
 

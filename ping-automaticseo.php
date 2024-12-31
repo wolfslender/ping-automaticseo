@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Auto Ping Publisher SEO
  * Description: Realiza automáticamente un ping a los servicios de actualización cada vez que publicas o actualizas un post.
- * Version: 1.0.0
+ * Version: 1.1.0
  * Author: Alexis Olivero
  * Author URI: https://oliverodev.com
  */
@@ -14,36 +14,9 @@ if ( !defined( 'ABSPATH' ) ) {
 }
 
 // Hook para ejecutar el ping al publicar o actualizar un post
-add_action( 'publish_post', 'auto_ping_published_post' );
+// [REMOVE] add_action( 'publish_post', 'auto_ping_published_post' );
 
-function auto_ping_published_post( $post_ID ) {
-    
-    // Obtener la lista de servicios de ping configurados en WordPress
-    $ping_services = get_option( 'ping_sites' );
-
-    // Convertir la lista en un array
-    $services = preg_split( "/(\r\n|\r|\n)/", $ping_services );
-
-    // URL de tu sitio
-    $blog_url = get_option( 'Agrega tu Sitio AQUI' );
-
-    // URL del post publicado
-    $post_url = get_permalink( $post_ID );
-
-    foreach ( $services as $service ) {
-        if ( filter_var( $service, FILTER_VALIDATE_URL ) ) {
-            wp_remote_post( $service, array(
-                'body' => array(
-                    'blog_name' => get_option( 'blogname' ),
-                    'blog_url'  => $blog_url,
-                    'post_url'  => $post_url
-                )
-            ));
-        }
-    }
-
-    return $post_ID;
-}
+// [REMOVE] function auto_ping_published_post( $post_ID ) { ... }
 
 // Activar el plugin y establecer servicios de ping predeterminados
 register_activation_hook( __FILE__, 'auto_ping_set_default_services' );
@@ -93,4 +66,56 @@ function auto_ping_settings_page() {
         </form>
     </div>
     <?php
+}
+
+add_filter('cron_schedules', 'auto_ping_custom_cron_schedules');
+function auto_ping_custom_cron_schedules($schedules) {
+    $schedules['every_five_hours'] = [
+        'interval' => 5 * 60 * 60,
+        'display'  => 'Every 5 Hours'
+    ];
+    return $schedules;
+}
+
+function auto_ping_schedule_cron() {
+    if (!wp_next_scheduled('auto_ping_cron_event')) {
+        wp_schedule_event(time(), 'every_five_hours', 'auto_ping_cron_event');
+    }
+}
+register_activation_hook(__FILE__, 'auto_ping_schedule_cron');
+
+add_action('auto_ping_cron_event', 'auto_ping_cron_execution');
+function auto_ping_cron_execution() {
+    // Obtener la lista de servicios de ping configurados en WordPress
+    $ping_services = get_option( 'ping_sites' );
+
+    // Convertir la lista en un array
+    $services = preg_split( "/(\r\n|\r|\n)/", $ping_services );
+
+    // URL de tu sitio
+    $blog_url = get_option( 'Agrega tu Sitio AQUI' );
+
+    // Obtenemos los posts publicados en las últimas 5 horas
+    $recent_posts = get_posts([
+        'post_type'   => 'post',
+        'post_status' => 'publish',
+        'date_query'  => [
+            ['after' => '5 hours ago']
+        ],
+        'posts_per_page' => -1
+    ]);
+    foreach ($recent_posts as $post) {
+        $post_url = get_permalink($post->ID);
+        foreach ($services as $service) {
+            if (filter_var($service, FILTER_VALIDATE_URL)) {
+                wp_remote_post( $service, array(
+                    'body' => array(
+                        'blog_name' => get_option( 'blogname' ),
+                        'blog_url'  => $blog_url,
+                        'post_url'  => $post_url
+                    )
+                ));
+            }
+        }
+    }
 }
